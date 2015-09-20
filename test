@@ -1,0 +1,49 @@
+#!/bin/sh
+
+set -e
+
+TEST_REPORT=test_report.txt
+
+fail() {
+    echo "FAIL"
+    cat $TEST_REPORT
+    rm $TEST_REPORT
+    exit 1
+}
+
+pass() {
+    echo "OK"
+    rm $TEST_REPORT
+}
+
+mydiff() {
+    echo "To see graphical diff:"
+    echo "kompare $1 $2"
+    echo "To accept diff:"
+    echo "cp $2 $1"
+    diff $1 $2
+}
+
+test() {
+    echo -n "Testing $1 ... "
+    (./make $1 > $TEST_REPORT 2>&1) || fail
+    (mydiff examples/$1.c build-output/$1/main.c > $TEST_REPORT 2>&1) || fail
+    pass
+}
+
+spell_check() {
+    echo -n "Spell checking $1 ... "
+    (aspell --extra-dicts ./.frp.en.pws list < README.md > $TEST_REPORT) || fail
+    (diff $TEST_REPORT /dev/null > /dev/null) || fail
+    pass
+}
+
+test Blink
+test DoubleBlink
+test UART
+test Input
+test Combine
+test LCD
+test FrequencyBlink
+spell_check
+runhaskell -isrc Spec.hs
